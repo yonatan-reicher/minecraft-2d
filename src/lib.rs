@@ -69,19 +69,15 @@ impl State {
         }
     }
 
-    pub fn on_input(&mut self, input: Input) {
+    pub fn on_input(mut self, input: Input) -> Option<Self> {
         match input {
             Input::Up => self.on_dir_input(Dir::Up),
             Input::Down => self.on_dir_input(Dir::Down),
             Input::Left => self.on_dir_input(Dir::Left),
             Input::Right => self.on_dir_input(Dir::Right),
-            Input::Quit => {
-                std::io::stdout()
-                    .queue(terminal::LeaveAlternateScreen)
-                    .expect("Failed to leave alternate screen");
-                std::process::exit(0) // Exit the game
-            }
+            Input::Quit => return None,
         }
+        Some(self)
     }
 }
 

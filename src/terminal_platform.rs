@@ -75,7 +75,7 @@ fn draw(
     const BR: char = '┛';
 
     /// Player character
-    const PLAYER: Chars = Chars::new('◀', '▶');
+    const PLAYER: Chars = Chars::new('(', ')');
 
     let outer_width = width & !1 /* Ensure even */;
     let outer_height = height;

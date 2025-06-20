@@ -1,11 +1,9 @@
-use crossterm::{
-    QueueableCommand,
-    style::{self, Stylize},
-    terminal,
-};
+use crossterm::QueueableCommand;
+use crossterm::terminal;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::Read;
+use std::io::Write;
 
 type Pos = (i32, i32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

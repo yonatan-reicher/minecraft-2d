@@ -1,5 +1,7 @@
+use noise::NoiseFn;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use noise::Perlin;
 
 type Pos = (i32, i32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -26,7 +28,9 @@ impl std::ops::Add<Dir> for Pos {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Tile {
     Empty,
-    Wall,
+    WallFull,
+    WallHalf,
+    WallLow,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -44,9 +48,12 @@ impl State {
     }
 
     fn generate_tile(pos: Pos) -> Tile {
-        // Example logic to generate a tile based on position
-        if ((412 * pos.0 + pos.1 * 313) >> 8) % 3 == 0 {
-            Tile::Wall
+        let f = Perlin::new(12412)
+            .get([pos.0 as f64 * 0.1, pos.1 as f64 * 0.1]);
+        // now `f` is a value between -1.0 and 1.0
+        let f = (f + 1.0) / 2.0; // normalize to [0.0, 1.0]
+        if f < 0.3 {
+            Tile::WallFull
         } else {
             Tile::Empty
         }
@@ -60,10 +67,17 @@ impl State {
             .or_insert(Self::generate_tile(pos))
     }
 
+    pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
+        self.tiles.borrow_mut().insert(pos, tile);
+    }
+
     fn on_dir_input(&mut self, dir: Dir) {
         let new_pos = self.player + dir;
-        if self.get_tile(new_pos) != Tile::Wall {
-            self.player = new_pos; // Move player if not hitting a wall
+        match self.get_tile(new_pos) {
+            Tile::Empty => self.player = new_pos,
+            Tile::WallFull => self.set_tile(new_pos, Tile::WallHalf),
+            Tile::WallHalf => self.set_tile(new_pos, Tile::WallLow),
+            Tile::WallLow => self.set_tile(new_pos, Tile::Empty),
         }
     }
 

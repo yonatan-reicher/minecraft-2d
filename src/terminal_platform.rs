@@ -59,8 +59,10 @@ fn draw(
     /// they are wide.
     fn draw_tile(tile: Tile) -> Chars {
         match tile {
-            Tile::Wall => ['█', '█'].into(),
-            Tile::Empty => ['░', '░'].into(),
+            Tile::WallFull => ['█', '█'].into(),
+            Tile::WallHalf => ['▓', '▓'].into(),
+            Tile::WallLow => ['▒', '▒'].into(),
+            Tile::Empty => [' ', ' '].into(),
         }
     }
     // ░ ▒ ▓

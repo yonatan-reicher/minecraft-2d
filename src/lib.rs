@@ -1,5 +1,3 @@
-use crossterm::QueueableCommand;
-use crossterm::terminal;
 use std::cell::RefCell;
 use std::collections::HashMap;
 

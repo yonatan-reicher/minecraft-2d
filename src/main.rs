@@ -8,5 +8,5 @@ fn main() {
     std::io::stdout()
         .queue(terminal::EnterAlternateScreen)
         .expect("Failed to enter alternate screen");
-    start_game(&mut CrosstermPlatform).unwrap();
+    start_game(&mut TerminalPlatform).unwrap();
 }

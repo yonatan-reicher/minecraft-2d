@@ -4,7 +4,9 @@ use crate::State;
 use crate::Tile;
 use crossterm::execute;
 use crossterm::queue;
+use crossterm::style::Print;
 use crossterm::terminal;
+use crossterm::cursor;
 use std::io::Read;
 use std::io::Write;
 use std::io::stdin;
@@ -142,11 +144,30 @@ impl Platform for TerminalPlatform {
     }
 
     fn draw(&mut self, state: &State) -> std::io::Result<()> {
-        queue!(stdout(), terminal::Clear(terminal::ClearType::All))?;
+        queue!(
+            stdout(),
+            terminal::Clear(terminal::ClearType::All),
+            cursor::MoveTo(0, 0),
+        )?;
         let mut out = vec![];
         let (w, h) = terminal::size()?;
         draw(state, &mut out, w as _, (h - 1) as _)?;
         std::io::stdout().write_all(&out)?;
+        execute!(
+            stdout(),
+            cursor::MoveTo(1, 1),
+            Print(HELP[0]),
+            cursor::MoveTo(1, 2),
+            Print(HELP[1]),
+            cursor::MoveTo(1, 3),
+            Print(HELP[2]),
+        )?;
         Ok(())
     }
 }
+
+const HELP: &[&str] = &[
+    "Controls:",
+    "w/a/s/d - move",
+    "q - quit",
+];

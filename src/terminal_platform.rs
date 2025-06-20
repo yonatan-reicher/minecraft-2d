@@ -143,7 +143,7 @@ impl Platform for TerminalPlatform {
         queue!(stdout(), terminal::Clear(terminal::ClearType::All))?;
         let mut out = vec![];
         let (w, h) = terminal::size()?;
-        draw(state, &mut out, w as _, h as _)?;
+        draw(state, &mut out, w as _, (h - 1) as _)?;
         std::io::stdout().write_all(&out)?;
         Ok(())
     }

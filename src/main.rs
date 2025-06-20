@@ -1,5 +1,4 @@
 use minecraft_2d::*;
-use std::io::Write;
 use crossterm::QueueableCommand;
 use crossterm::terminal;
 

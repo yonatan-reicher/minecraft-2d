@@ -2,8 +2,6 @@ use crossterm::QueueableCommand;
 use crossterm::terminal;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::Read;
-use std::io::Write;
 
 type Pos = (i32, i32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -28,11 +26,12 @@ impl std::ops::Add<Dir> for Pos {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Tile {
+pub enum Tile {
     Empty,
     Wall,
 }
 
+#[derive(Debug, Default, Clone)]
 pub struct State {
     tiles: RefCell<HashMap<Pos, Tile>>,
     player: Pos,

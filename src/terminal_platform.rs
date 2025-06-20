@@ -12,7 +12,7 @@ use std::io::stdout;
 
 fn get_input() -> Option<Input> {
     #[allow(clippy::unbuffered_bytes)]
-    std::io::stdin()
+    stdin()
         .bytes()
         .next()
         .and_then(|b| b.ok())

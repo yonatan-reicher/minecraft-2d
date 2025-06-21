@@ -62,9 +62,8 @@ impl State {
     }
 
     fn on_dir_input(&mut self, dir: Dir, shift: IsShift) {
-        self.player_dir = dir;
-        if shift == IsShift::Yes {
-            return;
+        if shift == IsShift::No {
+            self.player_dir = dir;
         };
 
         let new_pos = self.player_pos + dir;

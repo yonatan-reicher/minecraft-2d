@@ -212,4 +212,10 @@ impl Platform for TerminalPlatform {
     }
 }
 
-const HELP: &[&str] = &["Controls:", "w/a/s/d - move", "W/A/S/D - turn", "b - build", "q - quit"];
+const HELP: &[&str] = &[
+    "Controls:",
+    "w/a/s/d - move",
+    "W/A/S/D - turn",
+    "b - build",
+    "q - quit",
+];

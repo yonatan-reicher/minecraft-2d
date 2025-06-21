@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 type Pos = (i32, i32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum Dir {
+pub enum Dir {
     Up,
     Down,
     Left,
@@ -99,7 +99,7 @@ impl State {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum IsShift {
+pub enum IsShift {
     Yes,
     No,
 }

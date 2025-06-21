@@ -89,9 +89,18 @@ impl State {
         }
     }
 
+    fn on_build(&mut self) {
+        let build_pos = self.player_pos + self.player_dir;
+        if self.get_tile(build_pos) != Tile::Empty {
+            return; // Do not build on existing tiles
+        }
+        self.set_tile(build_pos, Tile::WallFull);
+    }
+
     pub fn on_input(mut self, input: Input) -> Option<Self> {
         match input {
             Input::Dir(dir, shift) => self.on_dir_input(dir, shift),
+            Input::Build => self.on_build(),
             Input::Quit => return None,
         }
         Some(self)
@@ -107,6 +116,7 @@ pub enum IsShift {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Input {
     Dir(Dir, IsShift),
+    Build,
     Quit,
 }
 
@@ -116,6 +126,7 @@ impl TryFrom<Input> for Dir {
     fn try_from(input: Input) -> Result<Self, Self::Error> {
         match input {
             Input::Dir(dir, _) => Ok(dir),
+            Input::Build => Err(()),
             Input::Quit => Err(()),
         }
     }

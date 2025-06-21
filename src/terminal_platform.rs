@@ -32,6 +32,7 @@ fn get_input() -> Option<Input> {
             'S' => Some(Input::Dir(Dir::Down, IsShift::Yes)),
             'A' => Some(Input::Dir(Dir::Left, IsShift::Yes)),
             'D' => Some(Input::Dir(Dir::Right, IsShift::Yes)),
+            'b' => Some(Input::Build),
             'q' => Some(Input::Quit),
             _ => None,
         })
@@ -204,9 +205,11 @@ impl Platform for TerminalPlatform {
             Print(HELP[2]),
             cursor::MoveTo(1, 4),
             Print(HELP[3]),
+            cursor::MoveTo(1, 5),
+            Print(HELP[4]),
         )?;
         Ok(())
     }
 }
 
-const HELP: &[&str] = &["Controls:", "w/a/s/d - move", "W/A/S/D - turn", "q - quit"];
+const HELP: &[&str] = &["Controls:", "w/a/s/d - move", "W/A/S/D - turn", "b - build", "q - quit"];

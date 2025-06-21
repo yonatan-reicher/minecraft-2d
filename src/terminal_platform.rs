@@ -1,5 +1,6 @@
 use crate::Dir;
 use crate::Input;
+use crate::IsShift;
 use crate::Platform;
 use crate::State;
 use crate::Tile;
@@ -23,10 +24,14 @@ fn get_input() -> Option<Input> {
         .next()
         .and_then(|b| b.ok())
         .and_then(|b| match b as char {
-            'w' => Some(Input::Up),
-            's' => Some(Input::Down),
-            'a' => Some(Input::Left),
-            'd' => Some(Input::Right),
+            'w' => Some(Input::Dir(Dir::Up, IsShift::No)),
+            's' => Some(Input::Dir(Dir::Down, IsShift::No)),
+            'a' => Some(Input::Dir(Dir::Left, IsShift::No)),
+            'd' => Some(Input::Dir(Dir::Right, IsShift::No)),
+            'W' => Some(Input::Dir(Dir::Up, IsShift::Yes)),
+            'S' => Some(Input::Dir(Dir::Down, IsShift::Yes)),
+            'A' => Some(Input::Dir(Dir::Left, IsShift::Yes)),
+            'D' => Some(Input::Dir(Dir::Right, IsShift::Yes)),
             'q' => Some(Input::Quit),
             _ => None,
         })
@@ -197,9 +202,11 @@ impl Platform for TerminalPlatform {
             Print(HELP[1]),
             cursor::MoveTo(1, 3),
             Print(HELP[2]),
+            cursor::MoveTo(1, 4),
+            Print(HELP[3]),
         )?;
         Ok(())
     }
 }
 
-const HELP: &[&str] = &["Controls:", "w/a/s/d - move", "q - quit"];
+const HELP: &[&str] = &["Controls:", "w/a/s/d - move", "W/A/S/D - turn", "q - quit"];

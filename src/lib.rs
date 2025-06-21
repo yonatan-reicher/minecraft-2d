@@ -1,7 +1,7 @@
 use noise::NoiseFn;
+use noise::Perlin;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use noise::Perlin;
 
 type Pos = (i32, i32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -56,15 +56,10 @@ impl State {
     }
 
     fn generate_tile(pos: Pos) -> Tile {
-        let f = Perlin::new(12412)
-            .get([pos.0 as f64 * 0.1, pos.1 as f64 * 0.1]);
+        let f = Perlin::new(12412).get([pos.0 as f64 * 0.1, pos.1 as f64 * 0.1]);
         // now `f` is a value between -1.0 and 1.0
         let f = (f + 1.0) / 2.0; // normalize to [0.0, 1.0]
-        if f < 0.3 {
-            Tile::WallFull
-        } else {
-            Tile::Empty
-        }
+        if f < 0.3 { Tile::WallFull } else { Tile::Empty }
     }
 
     pub fn get_tile(&self, pos: Pos) -> Tile {
@@ -79,8 +74,12 @@ impl State {
         self.tiles.borrow_mut().insert(pos, tile);
     }
 
-    fn on_dir_input(&mut self, dir: Dir) {
+    fn on_dir_input(&mut self, dir: Dir, shift: IsShift) {
         self.player_dir = dir;
+        if shift == IsShift::Yes {
+            return;
+        };
+
         let new_pos = self.player_pos + dir;
         match self.get_tile(new_pos) {
             Tile::Empty => self.player_pos = new_pos,
@@ -92,10 +91,7 @@ impl State {
 
     pub fn on_input(mut self, input: Input) -> Option<Self> {
         match input {
-            Input::Up => self.on_dir_input(Dir::Up),
-            Input::Down => self.on_dir_input(Dir::Down),
-            Input::Left => self.on_dir_input(Dir::Left),
-            Input::Right => self.on_dir_input(Dir::Right),
+            Input::Dir(dir, shift) => self.on_dir_input(dir, shift),
             Input::Quit => return None,
         }
         Some(self)
@@ -103,11 +99,14 @@ impl State {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IsShift {
+    Yes,
+    No,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Input {
-    Up,
-    Down,
-    Left,
-    Right,
+    Dir(Dir, IsShift),
     Quit,
 }
 
@@ -116,10 +115,7 @@ impl TryFrom<Input> for Dir {
 
     fn try_from(input: Input) -> Result<Self, Self::Error> {
         match input {
-            Input::Up => Ok(Dir::Up),
-            Input::Down => Ok(Dir::Down),
-            Input::Left => Ok(Dir::Left),
-            Input::Right => Ok(Dir::Right),
+            Input::Dir(dir, _) => Ok(dir),
             Input::Quit => Err(()),
         }
     }

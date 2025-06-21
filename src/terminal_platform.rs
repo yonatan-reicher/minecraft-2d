@@ -18,6 +18,10 @@ use std::io::stdin;
 use std::io::stdout;
 
 fn get_input() -> Option<Input> {
+    // TODO: Currently, this buffers input. So if you spam a key, it will keep
+    // being registered as pressed even after you let go of the button (if there
+    // is some lag). To avoid this, we want another thread reading input and
+    // blocking, and sending them individually, but to a 1-length buffer.
     #[allow(clippy::unbuffered_bytes)]
     stdin()
         .bytes()

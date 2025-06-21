@@ -1,14 +1,22 @@
+use std::path::Path;
+
 use crate::Platform;
 use crate::State;
 
 fn start_game_actual<P: Platform>(p: &mut P) -> Result<(), P::Error> {
-    let mut state = State::new();
     p.init()?;
+    let save_path = &Path::new("save");
+    let backup_path = &Path::new("backup");
+    let mut state: State = p.read(save_path)?.unwrap_or_else(State::new);
     loop {
+        p.write(backup_path, &state)?;
         p.draw(&state)?;
         let Some(input) = p.ask_for_input()? else { continue };
         match state.on_input(input) {
-            Some(s) => state = s,
+            Some(s) => {
+                state = s;
+                p.write(save_path, &state)?;
+            },
             None => break,
         }
     }

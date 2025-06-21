@@ -2,6 +2,7 @@ use noise::NoiseFn;
 use noise::Perlin;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::Path;
@@ -17,8 +18,10 @@ pub enum Tile {
     WallLow,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct State {
+    #[serde_as(as = "RefCell<Vec<(_, _)>>")]
     tiles: RefCell<HashMap<Pos, Tile>>,
     player_pos: Pos,
     player_dir: Dir,
@@ -122,7 +125,7 @@ pub trait Platform {
     fn cleanup(&mut self) -> Result<(), Self::Error>;
     fn ask_for_input(&mut self) -> Result<Option<Input>, Self::Error>;
     fn draw(&mut self, state: &State) -> Result<(), Self::Error>;
-    fn read<T: DeserializeOwned>(&mut self, file_path: &Path) -> Result<T, Self::Error>;
+    fn read<T: DeserializeOwned>(&mut self, file_path: &Path) -> Result<Option<T>, Self::Error>;
     fn write<T: serde::Serialize>(&mut self, file_path: &Path, value: T)
     -> Result<(), Self::Error>;
 }

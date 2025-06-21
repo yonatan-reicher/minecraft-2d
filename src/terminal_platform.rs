@@ -12,9 +12,6 @@ use crossterm::style::Color;
 use crossterm::style::Colors;
 use crossterm::style::Print;
 use crossterm::terminal;
-use functionality::Pipe;
-use serde_json as json;
-use std::fs::File;
 use std::io;
 use std::io::Read;
 use std::io::Write;
@@ -177,6 +174,23 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
     Ok(())
 }
 
+#[derive(Debug)]
+enum Error {
+    Ser(std::path::PathBuf, toml::ser::Error),
+    De(std::path::PathBuf, toml::de::Error),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Ser(path, e) => write!(f, "Failed to serialize to {}: {}", path.display(), e),
+            Error::De(path, e) => write!(f, "Failed to deserialize from {}: {}", path.display(), e),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TerminalPlatform;
 
@@ -228,10 +242,15 @@ impl Platform for TerminalPlatform {
     fn read<T: serde::de::DeserializeOwned>(
         &mut self,
         file_path: &std::path::Path,
-    ) -> Result<T, Self::Error> {
+    ) -> Result<Option<T>, Self::Error> {
         let path = data_dir()?.join(file_path);
-        let reader = File::open(&path)?;
-        json::from_reader(reader).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        if !path.exists() {
+            return Ok(None); // File does not exist
+        }
+        let text = std::fs::read_to_string(&path)?;
+        toml::from_str(&text)
+            .map_err(|e| Error::De(path.clone(), e))
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
     fn write<T: serde::Serialize>(
@@ -240,10 +259,12 @@ impl Platform for TerminalPlatform {
         value: T,
     ) -> Result<(), Self::Error> {
         let path = data_dir()?.join(file_path);
-        let writer = File::create(&path)?;
-        json::to_writer_pretty(writer, &value).expect("Failed to write JSON");
-        //.map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        Ok(())
+        // TODO: the toml crate's pretty printer actually kind of sucks. I
+        // should implement my own and PR it.
+        let text = toml::to_string_pretty(&value)
+            .map_err(|e| Error::Ser(path.clone(), e))
+            .map_err(io::Error::other)?;
+        std::fs::write(&path, text)
     }
 }
 

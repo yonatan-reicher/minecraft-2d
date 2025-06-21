@@ -98,10 +98,10 @@ fn draw(
         write!(output, "{}", L)?;
         for col in 0..cells_in_a_row {
             let pos = (
-                state.player.0 + col as i32 - cells_in_a_row as i32 / 2,
-                state.player.1 + row as i32 - rows as i32 / 2,
+                state.player_pos.0 + col as i32 - cells_in_a_row as i32 / 2,
+                state.player_pos.1 + row as i32 - rows as i32 / 2,
             );
-            let chars = if pos == state.player {
+            let chars = if pos == state.player_pos {
                 PLAYER
             } else {
                 let tile = state.get_tile(pos);

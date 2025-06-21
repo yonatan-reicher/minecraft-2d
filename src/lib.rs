@@ -36,14 +36,14 @@ pub enum Tile {
 #[derive(Debug, Default, Clone)]
 pub struct State {
     tiles: RefCell<HashMap<Pos, Tile>>,
-    player: Pos,
+    player_pos: Pos,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
             tiles: HashMap::new().into(),
-            player: (0, 0),
+            player_pos: (0, 0),
         }
     }
 
@@ -72,9 +72,9 @@ impl State {
     }
 
     fn on_dir_input(&mut self, dir: Dir) {
-        let new_pos = self.player + dir;
+        let new_pos = self.player_pos + dir;
         match self.get_tile(new_pos) {
-            Tile::Empty => self.player = new_pos,
+            Tile::Empty => self.player_pos = new_pos,
             Tile::WallFull => self.set_tile(new_pos, Tile::WallHalf),
             Tile::WallHalf => self.set_tile(new_pos, Tile::WallLow),
             Tile::WallLow => self.set_tile(new_pos, Tile::Empty),

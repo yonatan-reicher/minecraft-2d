@@ -48,7 +48,7 @@ fn get_input() -> Option<Input> {
             'S' => Some(Input::Dir(Dir::Down, IsShift::Yes)),
             'A' => Some(Input::Dir(Dir::Left, IsShift::Yes)),
             'D' => Some(Input::Dir(Dir::Right, IsShift::Yes)),
-            'b' => Some(Input::Build),
+            'b' | 'B' => Some(Input::Build),
             'q' => Some(Input::Quit),
             _ => None,
         })

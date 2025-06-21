@@ -1,12 +1,15 @@
 use noise::NoiseFn;
 use noise::Perlin;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::Path;
 
 mod utils;
-use utils::{Pos, Dir};
+use utils::{Dir, Pos};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Tile {
     Empty,
     WallFull,
@@ -14,7 +17,7 @@ pub enum Tile {
     WallLow,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct State {
     tiles: RefCell<HashMap<Pos, Tile>>,
     player_pos: Pos,
@@ -119,6 +122,9 @@ pub trait Platform {
     fn cleanup(&mut self) -> Result<(), Self::Error>;
     fn ask_for_input(&mut self) -> Result<Option<Input>, Self::Error>;
     fn draw(&mut self, state: &State) -> Result<(), Self::Error>;
+    fn read<T: DeserializeOwned>(&mut self, file_path: &Path) -> Result<T, Self::Error>;
+    fn write<T: serde::Serialize>(&mut self, file_path: &Path, value: T)
+    -> Result<(), Self::Error>;
 }
 
 mod game_loop;

@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 pub type Pos = (i32, i32);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Dir {
     Up,
     Down,

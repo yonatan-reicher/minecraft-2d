@@ -12,10 +12,25 @@ use crossterm::style::Color;
 use crossterm::style::Colors;
 use crossterm::style::Print;
 use crossterm::terminal;
+use functionality::Pipe;
+use serde_json as json;
+use std::fs::File;
+use std::io;
 use std::io::Read;
 use std::io::Write;
 use std::io::stdin;
 use std::io::stdout;
+
+fn data_dir() -> io::Result<std::path::PathBuf> {
+    // TODO: Maybe return a result?
+    let dir = dirs::data_dir()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Could not find data directory"))?;
+    let out = dir.join("j-minecraft-2d");
+    if !out.exists() {
+        std::fs::create_dir_all(&out)?;
+    }
+    Ok(out)
+}
 
 fn get_input() -> Option<Input> {
     // TODO: Currently, this buffers input. So if you spam a key, it will keep
@@ -71,7 +86,7 @@ impl Chars {
         self
     }
 
-    pub fn write(self, output: &mut impl std::io::Write) -> std::io::Result<()> {
+    pub fn write(self, output: &mut impl io::Write) -> io::Result<()> {
         queue!(
             output,
             style::SetColors(Colors::new(self.fg, self.bg)),
@@ -87,12 +102,7 @@ impl From<[char; 2]> for Chars {
     }
 }
 
-fn draw(
-    state: &State,
-    output: &mut impl std::io::Write,
-    width: u32,
-    height: u32,
-) -> std::io::Result<()> {
+fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> io::Result<()> {
     /// A tile get's drawn to two characters because most fonts are taller than
     /// they are wide.
     fn draw_tile(tile: Tile) -> Chars {
@@ -171,25 +181,25 @@ fn draw(
 pub struct TerminalPlatform;
 
 impl Platform for TerminalPlatform {
-    type Error = std::io::Error;
+    type Error = io::Error;
 
-    fn init(&mut self) -> std::io::Result<()> {
+    fn init(&mut self) -> io::Result<()> {
         terminal::enable_raw_mode()?;
         execute!(stdout(), terminal::EnterAlternateScreen)?;
         Ok(())
     }
 
-    fn cleanup(&mut self) -> std::io::Result<()> {
+    fn cleanup(&mut self) -> io::Result<()> {
         terminal::disable_raw_mode()?;
         execute!(stdout(), terminal::LeaveAlternateScreen)?;
         Ok(())
     }
 
-    fn ask_for_input(&mut self) -> std::io::Result<Option<Input>> {
+    fn ask_for_input(&mut self) -> io::Result<Option<Input>> {
         Ok(get_input())
     }
 
-    fn draw(&mut self, state: &State) -> std::io::Result<()> {
+    fn draw(&mut self, state: &State) -> io::Result<()> {
         queue!(
             stdout(),
             terminal::Clear(terminal::ClearType::All),
@@ -198,7 +208,7 @@ impl Platform for TerminalPlatform {
         let mut out = vec![];
         let (w, h) = terminal::size()?;
         draw(state, &mut out, w as _, (h - 1) as _)?;
-        std::io::stdout().write_all(&out)?;
+        io::stdout().write_all(&out)?;
         execute!(
             stdout(),
             cursor::MoveTo(1, 1),
@@ -212,6 +222,27 @@ impl Platform for TerminalPlatform {
             cursor::MoveTo(1, 5),
             Print(HELP[4]),
         )?;
+        Ok(())
+    }
+
+    fn read<T: serde::de::DeserializeOwned>(
+        &mut self,
+        file_path: &std::path::Path,
+    ) -> Result<T, Self::Error> {
+        let path = data_dir()?.join(file_path);
+        let reader = File::open(&path)?;
+        json::from_reader(reader).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    }
+
+    fn write<T: serde::Serialize>(
+        &mut self,
+        file_path: &std::path::Path,
+        value: T,
+    ) -> Result<(), Self::Error> {
+        let path = data_dir()?.join(file_path);
+        let writer = File::create(&path)?;
+        json::to_writer_pretty(writer, &value).expect("Failed to write JSON");
+        //.map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         Ok(())
     }
 }

@@ -1,12 +1,16 @@
+use crate::Dir;
 use crate::Input;
 use crate::Platform;
 use crate::State;
 use crate::Tile;
+use crossterm::cursor;
 use crossterm::execute;
 use crossterm::queue;
+use crossterm::style;
+use crossterm::style::Color;
+use crossterm::style::Colors;
 use crossterm::style::Print;
 use crossterm::terminal;
-use crossterm::cursor;
 use std::io::Read;
 use std::io::Write;
 use std::io::stdin;
@@ -33,15 +37,37 @@ fn get_input() -> Option<Input> {
 pub struct Chars {
     left: char,
     right: char,
+    bg: Color,
+    fg: Color,
 }
 
 impl Chars {
     pub const fn new(left: char, right: char) -> Self {
-        Chars { left, right }
+        Chars {
+            left,
+            right,
+            bg: Color::Reset,
+            fg: Color::Reset,
+        }
+    }
+
+    pub const fn with_fg(mut self, fg: Color) -> Self {
+        self.fg = fg;
+        self
+    }
+
+    pub const fn with_bg(mut self, bg: Color) -> Self {
+        self.bg = bg;
+        self
     }
 
     pub fn write(self, output: &mut impl std::io::Write) -> std::io::Result<()> {
-        write!(output, "{}{}", self.left, self.right)
+        queue!(
+            output,
+            style::SetColors(Colors::new(self.fg, self.bg)),
+            Print(self.left),
+            Print(self.right),
+        )
     }
 }
 
@@ -79,7 +105,16 @@ fn draw(
     const BR: char = '┛';
 
     /// Player character
-    const PLAYER: Chars = Chars::new('(', ')');
+    fn player(dir: Dir) -> Chars {
+        Chars::from(match dir {
+            Dir::Up => ['▀', '▀'],
+            Dir::Down => ['▄', '▄'],
+            Dir::Left => ['█', ' '],
+            Dir::Right => [' ', '█'],
+        })
+        .with_fg(Color::White)
+        .with_bg(Color::DarkGrey)
+    }
 
     let outer_width = width & !1 /* Ensure even */;
     let outer_height = height;
@@ -102,9 +137,10 @@ fn draw(
                 state.player_pos.1 + row as i32 - rows as i32 / 2,
             );
             let chars = if pos == state.player_pos {
-                PLAYER
+                player(state.player_dir)
             } else {
                 let tile = state.get_tile(pos);
+                queue!(output, style::SetForegroundColor(style::Color::Green))?;
                 draw_tile(tile)
             };
             chars.write(output)?;
@@ -166,8 +202,4 @@ impl Platform for TerminalPlatform {
     }
 }
 
-const HELP: &[&str] = &[
-    "Controls:",
-    "w/a/s/d - move",
-    "q - quit",
-];
+const HELP: &[&str] = &["Controls:", "w/a/s/d - move", "q - quit"];

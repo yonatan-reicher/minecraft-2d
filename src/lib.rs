@@ -33,10 +33,17 @@ pub enum Tile {
     WallLow,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct State {
     tiles: RefCell<HashMap<Pos, Tile>>,
     player_pos: Pos,
+    player_dir: Dir,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl State {
@@ -44,6 +51,7 @@ impl State {
         Self {
             tiles: HashMap::new().into(),
             player_pos: (0, 0),
+            player_dir: Dir::Down,
         }
     }
 
@@ -72,6 +80,7 @@ impl State {
     }
 
     fn on_dir_input(&mut self, dir: Dir) {
+        self.player_dir = dir;
         let new_pos = self.player_pos + dir;
         match self.get_tile(new_pos) {
             Tile::Empty => self.player_pos = new_pos,

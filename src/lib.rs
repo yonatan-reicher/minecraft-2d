@@ -50,15 +50,20 @@ impl State {
     }
 
     pub fn get_tile(&self, pos: Pos) -> Tile {
-        *self
-            .tiles
-            .borrow_mut()
-            .entry(pos)
-            .or_insert(Self::generate_tile(pos))
+        self.tiles
+            .borrow()
+            .get(&pos)
+            .cloned()
+            .unwrap_or_else(|| Self::generate_tile(pos))
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
-        self.tiles.borrow_mut().insert(pos, tile);
+        let mut tiles = self.tiles.borrow_mut();
+        if tile == Self::generate_tile(pos) {
+            tiles.remove(&pos);
+        } else {
+            tiles.insert(pos, tile);
+        }
     }
 
     fn on_dir_input(&mut self, dir: Dir, shift: IsShift) {

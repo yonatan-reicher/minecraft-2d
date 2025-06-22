@@ -175,6 +175,8 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
     }
     writeln!(output, "{}", BR)?;
 
+    writeln!(output, "XY: {} {}", state.player_pos.0, state.player_pos.1)?;
+
     queue!(
         output,
         style::ResetColor,

@@ -158,7 +158,6 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
                 player(state.player_dir)
             } else {
                 let tile = state.get_tile(pos);
-                queue!(output, style::SetForegroundColor(style::Color::Green))?;
                 draw_tile(tile)
             };
             chars.write(output)?;

@@ -25,6 +25,8 @@ pub struct State {
     tiles: RefCell<HashMap<Pos, Tile>>,
     player_pos: Pos,
     player_dir: Dir,
+    #[serde(default)]
+    message: String,
 }
 
 impl Default for State {
@@ -39,6 +41,7 @@ impl State {
             tiles: HashMap::new().into(),
             player_pos: (0, 0),
             player_dir: Dir::Down,
+            message: String::new(),
         }
     }
 
@@ -88,12 +91,23 @@ impl State {
         self.set_tile(build_pos, Tile::WallFull);
     }
 
+    fn tick(&mut self) {
+        let tile_in_front = self.get_tile(self.player_pos + self.player_dir);
+        match tile_in_front {
+            Tile::Empty => self.message.clear(),
+            Tile::WallFull => self.message = "You are facing a full wall.".to_string(),
+            Tile::WallHalf => self.message = "You are facing a half wall.".to_string(),
+            Tile::WallLow => self.message = "You are facing a low wall.".to_string(),
+        }
+    }
+
     pub fn on_input(mut self, input: Input) -> Option<Self> {
         match input {
             Input::Dir(dir, shift) => self.on_dir_input(dir, shift),
             Input::Build => self.on_build(),
             Input::Quit => return None,
         }
+        self.tick();
         Some(self)
     }
 }

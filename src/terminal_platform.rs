@@ -155,6 +155,10 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
             );
             // TODO: this should just check against row and col, not the pos.
             let chars = if pos == state.player_pos {
+                queue!(
+                    output,
+                    cursor::SavePosition,
+                )?;
                 player(state.player_dir)
             } else {
                 let tile = state.get_tile(pos);
@@ -170,6 +174,15 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
         write!(output, "{}", B)?;
     }
     writeln!(output, "{}", BR)?;
+
+    queue!(
+        output,
+        style::ResetColor,
+        cursor::RestorePosition,
+        cursor::MoveDown(1),
+        cursor::MoveLeft(10),
+        Print(&state.message),
+    )?;
 
     Ok(())
 }

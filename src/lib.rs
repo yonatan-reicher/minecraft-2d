@@ -18,6 +18,17 @@ pub enum Tile {
     WallLow,
 }
 
+impl Tile {
+    pub fn breaks_into(self) -> Option<Tile> {
+        match self {
+            Tile::WallFull => Some(Tile::WallHalf),
+            Tile::WallHalf => Some(Tile::WallLow),
+            Tile::WallLow => Some(Tile::Empty),
+            Tile::Empty => None,
+        }
+    }
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct State {
@@ -70,16 +81,40 @@ impl State {
     }
 
     fn on_dir_input(&mut self, dir: Dir, shift: IsShift) {
+        let dir_same = self.player_dir == dir;
+
         if shift == IsShift::No {
             self.player_dir = dir;
         };
 
         let new_pos = self.player_pos + dir;
-        match self.get_tile(new_pos) {
-            Tile::Empty => self.player_pos = new_pos,
-            Tile::WallFull => self.set_tile(new_pos, Tile::WallHalf),
-            Tile::WallHalf => self.set_tile(new_pos, Tile::WallLow),
-            Tile::WallLow => self.set_tile(new_pos, Tile::Empty),
+        let try_move = match shift {
+            IsShift::Yes => true,
+            IsShift::No => dir_same,
+        };
+        let can_dig = dir_same;
+        let tile = self.get_tile(new_pos);
+        match tile {
+            Tile::Empty => {
+                if try_move {
+                    self.player_pos = new_pos
+                }
+            }
+            Tile::WallFull => {
+                if can_dig {
+                    self.set_tile(new_pos, tile.breaks_into().unwrap())
+                }
+            }
+            Tile::WallHalf => {
+                if can_dig {
+                    self.set_tile(new_pos, tile.breaks_into().unwrap())
+                }
+            }
+            Tile::WallLow => {
+                if can_dig {
+                    self.set_tile(new_pos, tile.breaks_into().unwrap())
+                }
+            }
         }
     }
 

@@ -153,6 +153,7 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
                 state.player_pos.0 + col as i32 - cells_in_a_row as i32 / 2,
                 state.player_pos.1 + row as i32 - rows as i32 / 2,
             );
+            // TODO: this should just check against row and col, not the pos.
             let chars = if pos == state.player_pos {
                 player(state.player_dir)
             } else {

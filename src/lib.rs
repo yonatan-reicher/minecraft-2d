@@ -127,26 +127,19 @@ impl State {
         };
         let can_dig = dir_same;
         let tile = self.get_tile(new_pos);
-        match tile {
-            Tile::Empty => {
-                if try_move {
-                    self.player_pos = new_pos
-                }
+        if Tile::Empty == tile {
+            if try_move {
+                self.player_pos = new_pos;
             }
-            Tile::WallFull => {
-                if can_dig {
-                    self.set_tile(new_pos, tile.breaks_into().unwrap())
+        } else if can_dig {
+            // We are breaking the tile!
+            match tile.breaks_into() {
+                tiles::BreakResult::Tile(tile) => self.set_tile(new_pos, tile),
+                tiles::BreakResult::Item(_item) => {
+                    // TODO: Save in some inventory
+                    // for now, does nothing
                 }
-            }
-            Tile::WallHalf => {
-                if can_dig {
-                    self.set_tile(new_pos, tile.breaks_into().unwrap())
-                }
-            }
-            Tile::WallLow => {
-                if can_dig {
-                    self.set_tile(new_pos, tile.breaks_into().unwrap())
-                }
+                tiles::BreakResult::CannotBeBroken => (),
             }
         }
     }

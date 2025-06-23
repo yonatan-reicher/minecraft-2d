@@ -1,26 +1,71 @@
-use noise::NoiseFn;
-use noise::Perlin;
-use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
+// Std imports
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+// Third party
+use noise::{NoiseFn, Perlin};
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
+
+/// Some utility types.
 mod utils;
 use utils::{Dir, Pos};
 
-mod tiles;
-pub use tiles::Tile;
-
+/// Defines the kind of input that the game can receive. Input is not direct
+/// keyboard and mouse presses, but a higher-level what-action-to-take kind of
+/// thing. The input is keyboard presses are turned to `Input` by a `Platform`.
 mod input;
 pub use input::{Input, IsShift};
 
+/// Trait for handling input. Used by `start_game`.
+pub trait OnInput: Sized {
+    /// Returns `None` if the game has ended.
+    fn on_input(self, input: Input) -> Option<Self>;
+}
+
+/// A platform is a trait that defines defines how a game interacts with the
+/// local system. That includes getting input, drawing to the screen, saving and
+/// loading, and whatever else there is that isn't game logic.
+///
+/// A `Platform` type can be used with the `start_game` function.
+pub trait Platform {
+    type Error;
+    type State: OnInput + Default;
+
+    fn init(&mut self) -> Result<(), Self::Error>;
+    fn cleanup(&mut self) -> Result<(), Self::Error>;
+    fn ask_for_input(&mut self) -> Result<Option<Input>, Self::Error>;
+    fn draw(&mut self, state: &Self::State) -> Result<(), Self::Error>;
+    fn save(&mut self, state: &Self::State) -> Result<(), Self::Error>;
+    fn load(&mut self) -> Result<Option<Self::State>, Self::Error>;
+}
+
+mod game_loop;
+pub use game_loop::start_game;
+
+mod terminal_platform;
+pub use terminal_platform::TerminalPlatform;
+
+/// Defines everything to do with the tiles in the game's map.
+mod tiles;
+pub use tiles::Tile;
+
+/// The full state of the game in any given moment.
+/// This type is de/serializable for ease of the platform.
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct State {
+    /// The entire map of tiles. Serialized as a `Vec` because `toml` doesn't
+    /// support non-string maps.
+    ///
+    /// When a position is not inside the map, it's tile will be procedurally
+    /// generated. When a position is inside the map and it's tile is the same
+    /// as it's procedurally generated one, it is immediately removed.
     #[serde_as(as = "RefCell<Vec<(_, _)>>")]
     tiles: RefCell<HashMap<Pos, Tile>>,
     player_pos: Pos,
     player_dir: Dir,
+    // TODO: Replace this by a function.
     #[serde(default)]
     message: String,
 }
@@ -137,24 +182,3 @@ impl OnInput for State {
         self.on_input(input)
     }
 }
-
-pub trait OnInput: Sized {
-    fn on_input(self, input: Input) -> Option<Self>;
-}
-
-pub trait Platform {
-    type Error;
-    type State: OnInput + Default;
-
-    fn init(&mut self) -> Result<(), Self::Error>;
-    fn cleanup(&mut self) -> Result<(), Self::Error>;
-    fn ask_for_input(&mut self) -> Result<Option<Input>, Self::Error>;
-    fn draw(&mut self, state: &Self::State) -> Result<(), Self::Error>;
-    fn save(&mut self, state: &Self::State) -> Result<(), Self::Error>;
-    fn load(&mut self) -> Result<Option<Self::State>, Self::Error>;
-}
-
-mod game_loop;
-pub use game_loop::start_game;
-mod terminal_platform;
-pub use terminal_platform::TerminalPlatform;

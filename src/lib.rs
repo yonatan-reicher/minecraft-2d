@@ -1,17 +1,18 @@
 use noise::NoiseFn;
 use noise::Perlin;
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::path::Path;
 
 mod utils;
 use utils::{Dir, Pos};
 
 mod tiles;
 pub use tiles::Tile;
+
+mod input;
+pub use input::{Input, IsShift};
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,40 +132,26 @@ impl State {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IsShift {
-    Yes,
-    No,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Input {
-    Dir(Dir, IsShift),
-    Build,
-    Quit,
-}
-
-impl TryFrom<Input> for Dir {
-    type Error = ();
-
-    fn try_from(input: Input) -> Result<Self, Self::Error> {
-        match input {
-            Input::Dir(dir, _) => Ok(dir),
-            Input::Build => Err(()),
-            Input::Quit => Err(()),
-        }
+impl OnInput for State {
+    fn on_input(self, input: Input) -> Option<Self> {
+        self.on_input(input)
     }
 }
 
 pub trait Platform {
     type Error;
+    type State;
+
     fn init(&mut self) -> Result<(), Self::Error>;
     fn cleanup(&mut self) -> Result<(), Self::Error>;
     fn ask_for_input(&mut self) -> Result<Option<Input>, Self::Error>;
-    fn draw(&mut self, state: &State) -> Result<(), Self::Error>;
-    fn read<T: DeserializeOwned>(&mut self, file_path: &Path) -> Result<Option<T>, Self::Error>;
-    fn write<T: serde::Serialize>(&mut self, file_path: &Path, value: T)
-    -> Result<(), Self::Error>;
+    fn draw(&mut self, state: &Self::State) -> Result<(), Self::Error>;
+    fn save(&mut self, state: &Self::State) -> Result<(), Self::Error>;
+    fn load(&mut self) -> Result<Option<Self::State>, Self::Error>;
+}
+
+pub trait OnInput: Sized {
+    fn on_input(self, input: Input) -> Option<Self>;
 }
 
 mod game_loop;

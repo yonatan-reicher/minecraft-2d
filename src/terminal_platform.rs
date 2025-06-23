@@ -17,8 +17,9 @@ use std::io::Read;
 use std::io::Write;
 use std::io::stdin;
 use std::io::stdout;
+use std::path::{Path, PathBuf};
 
-fn data_dir() -> io::Result<std::path::PathBuf> {
+fn data_dir() -> io::Result<PathBuf> {
     // TODO: Maybe return a result?
     let dir = dirs::data_dir()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Could not find data directory"))?;
@@ -155,10 +156,7 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
             );
             // TODO: this should just check against row and col, not the pos.
             let chars = if pos == state.player_pos {
-                queue!(
-                    output,
-                    cursor::SavePosition,
-                )?;
+                queue!(output, cursor::SavePosition,)?;
                 player(state.player_dir)
             } else {
                 let tile = state.get_tile(pos);
@@ -189,10 +187,11 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
     Ok(())
 }
 
+/// TODO: Rename
 #[derive(Debug)]
 enum Error {
-    Ser(std::path::PathBuf, toml::ser::Error),
-    De(std::path::PathBuf, toml::de::Error),
+    Ser(PathBuf, toml::ser::Error),
+    De(PathBuf, toml::de::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -206,11 +205,42 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TerminalPlatform;
+
+impl TerminalPlatform {
+    pub const fn new() -> Self {
+        TerminalPlatform
+    }
+
+    fn read<T: serde::de::DeserializeOwned>(
+        &mut self,
+        file_path: &Path,
+    ) -> Result<Option<T>, io::Error> {
+        let path = data_dir()?.join(file_path);
+        if !path.exists() {
+            return Ok(None); // File does not exist
+        }
+        let text = std::fs::read_to_string(&path)?;
+        toml::from_str(&text)
+            .map_err(|e| Error::De(path.clone(), e))
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    }
+
+    fn write<T: serde::Serialize>(&mut self, file_path: &Path, value: T) -> Result<(), io::Error> {
+        let path = data_dir()?.join(file_path);
+        // TODO: the toml crate's pretty printer actually kind of sucks. I
+        // should implement my own and PR it.
+        let text = toml::to_string_pretty(&value)
+            .map_err(|e| Error::Ser(path.clone(), e))
+            .map_err(io::Error::other)?;
+        std::fs::write(&path, text)
+    }
+}
 
 impl Platform for TerminalPlatform {
     type Error = io::Error;
+    type State = State;
 
     fn init(&mut self) -> io::Result<()> {
         terminal::enable_raw_mode()?;
@@ -254,32 +284,13 @@ impl Platform for TerminalPlatform {
         Ok(())
     }
 
-    fn read<T: serde::de::DeserializeOwned>(
-        &mut self,
-        file_path: &std::path::Path,
-    ) -> Result<Option<T>, Self::Error> {
-        let path = data_dir()?.join(file_path);
-        if !path.exists() {
-            return Ok(None); // File does not exist
-        }
-        let text = std::fs::read_to_string(&path)?;
-        toml::from_str(&text)
-            .map_err(|e| Error::De(path.clone(), e))
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    fn save(&mut self, state: &State) -> io::Result<()> {
+        // TODO: Make a backup.
+        self.write(Path::new("save"), state)
     }
 
-    fn write<T: serde::Serialize>(
-        &mut self,
-        file_path: &std::path::Path,
-        value: T,
-    ) -> Result<(), Self::Error> {
-        let path = data_dir()?.join(file_path);
-        // TODO: the toml crate's pretty printer actually kind of sucks. I
-        // should implement my own and PR it.
-        let text = toml::to_string_pretty(&value)
-            .map_err(|e| Error::Ser(path.clone(), e))
-            .map_err(io::Error::other)?;
-        std::fs::write(&path, text)
+    fn load(&mut self) -> io::Result<Option<State>> {
+        self.read(Path::new("save"))
     }
 }
 

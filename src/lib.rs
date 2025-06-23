@@ -50,6 +50,9 @@ pub use terminal_platform::TerminalPlatform;
 mod tiles;
 pub use tiles::Tile;
 
+mod items;
+pub use items::Item;
+
 /// The full state of the game in any given moment.
 /// This type is de/serializable for ease of the platform.
 #[serde_as]

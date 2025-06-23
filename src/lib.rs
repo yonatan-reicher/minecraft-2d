@@ -138,9 +138,13 @@ impl OnInput for State {
     }
 }
 
+pub trait OnInput: Sized {
+    fn on_input(self, input: Input) -> Option<Self>;
+}
+
 pub trait Platform {
     type Error;
-    type State;
+    type State: OnInput + Default;
 
     fn init(&mut self) -> Result<(), Self::Error>;
     fn cleanup(&mut self) -> Result<(), Self::Error>;
@@ -148,10 +152,6 @@ pub trait Platform {
     fn draw(&mut self, state: &Self::State) -> Result<(), Self::Error>;
     fn save(&mut self, state: &Self::State) -> Result<(), Self::Error>;
     fn load(&mut self) -> Result<Option<Self::State>, Self::Error>;
-}
-
-pub trait OnInput: Sized {
-    fn on_input(self, input: Input) -> Option<Self>;
 }
 
 mod game_loop;

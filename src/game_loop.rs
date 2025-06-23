@@ -1,12 +1,9 @@
-
 use crate::OnInput;
 use crate::Platform;
 
-fn start_game_actual<State: OnInput + Default, P: Platform<State = State>>(
-    p: &mut P,
-) -> Result<(), P::Error> {
+fn start_game_actual<P: Platform>(p: &mut P) -> Result<(), P::Error> {
     p.init()?;
-    let mut state: State = p.load()?.unwrap_or_else(State::default);
+    let mut state: P::State = p.load()?.unwrap_or_else(P::State::default);
     loop {
         p.draw(&state)?;
         let Some(input) = p.ask_for_input()? else {
@@ -23,9 +20,7 @@ fn start_game_actual<State: OnInput + Default, P: Platform<State = State>>(
     Ok(())
 }
 
-pub fn start_game<State: OnInput + Default, P: Platform<State = State>>(
-    p: &mut P,
-) -> Result<(), P::Error> {
+pub fn start_game<P: Platform>(p: &mut P) -> Result<(), P::Error> {
     let res = start_game_actual(p);
     // Whether or not the game stopped due to error or quit input, we clean up.
     let cleanup_res = p.cleanup();

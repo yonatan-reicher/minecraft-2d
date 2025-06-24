@@ -137,7 +137,7 @@ impl State {
                 tiles::BreakResult::Tile(tile) => self.set_tile(new_pos, tile),
                 tiles::BreakResult::Item(_item) => {
                     // TODO: Save in some inventory
-                    // for now, does nothing
+                    self.set_tile(new_pos, Tile::Empty);
                 }
                 tiles::BreakResult::CannotBeBroken => (),
             }

@@ -19,6 +19,13 @@ use std::io::stdin;
 use std::io::stdout;
 use std::path::{Path, PathBuf};
 
+fn line_ending() -> &'static str {
+    // We need this line ending, because in raw mode, in some terminals, `\n`
+    // does not return to the start of the line.
+    // And, notably, `writeln!` does not print a `\r`.
+    "\r\n"
+}
+
 fn data_dir() -> io::Result<PathBuf> {
     // TODO: Maybe return a result?
     let dir = dirs::data_dir()
@@ -145,7 +152,7 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
     for _ in 0..inner_width {
         write!(output, "{}", T)?;
     }
-    writeln!(output, "{}", TR)?;
+    write!(output, "{}{}", TR, line_ending())?;
 
     for row in 0..rows {
         write!(output, "{}", L)?;
@@ -164,16 +171,16 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
             };
             chars.write(output)?;
         }
-        writeln!(output, "{}", R)?;
+        write!(output, "{}{}", R, line_ending())?;
     }
 
     write!(output, "{}", BL)?;
     for _ in 0..inner_width {
         write!(output, "{}", B)?;
     }
-    writeln!(output, "{}", BR)?;
+    write!(output, "{}{}", BR, line_ending())?;
 
-    writeln!(output, "XY: {} {}", state.player_pos.0, state.player_pos.1)?;
+    write!(output, "XY: {} {}{}", state.player_pos.0, state.player_pos.1, line_ending())?;
 
     queue!(
         output,

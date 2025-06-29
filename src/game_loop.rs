@@ -1,3 +1,4 @@
+use crate::Input;
 use crate::OnInput;
 use crate::Platform;
 use crate::State;
@@ -18,14 +19,21 @@ pub fn start_game<P: Platform>(p: &mut P) -> Result<(), P::Error> {
     }
 }
 
+fn get_good_input<P: Platform>(p: &mut P) -> Result<Input, P::Error> {
+    loop {
+        match p.ask_for_input()? {
+            Some(input) => return Ok(input),
+            None => continue, // No input, try again
+        }
+    }
+}
+
 fn start_game_actual<P: Platform>(p: &mut P) -> Result<(), P::Error> {
     p.init()?;
     let mut state = p.load()?.unwrap_or_else(State::new);
     loop {
         p.draw(&state)?;
-        let Some(input) = p.ask_for_input()? else {
-            continue;
-        };
+        let input = get_good_input(p)?;
         match state.on_input(input) {
             Some(s) => {
                 state = s;

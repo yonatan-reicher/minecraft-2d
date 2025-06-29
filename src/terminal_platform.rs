@@ -347,7 +347,7 @@ impl Platform for TerminalPlatform {
         )?;
         let mut out = vec![];
         let (w, h) = terminal::size()?;
-        draw(state, &mut out, w as _, (h - 1) as _)?;
+        draw(state, &mut out, w as _, (h - 2) as _)?;
         io::stdout().write_all(&out)?;
         execute!(
             stdout(),

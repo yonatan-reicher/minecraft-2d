@@ -5,6 +5,10 @@ use crate::Platform;
 use crate::State;
 use crate::Tile;
 use crossterm::cursor;
+use crossterm::event;
+use crossterm::event::Event;
+use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
 use crossterm::execute;
 use crossterm::queue;
 use crossterm::style;
@@ -37,29 +41,80 @@ fn data_dir() -> io::Result<PathBuf> {
     Ok(out)
 }
 
+fn on_letter_pressed(char: char) -> Option<Input> {
+    match char {
+        'w' => Some(Input::Dir(Dir::Up, IsShift::No)),
+        's' => Some(Input::Dir(Dir::Down, IsShift::No)),
+        'a' => Some(Input::Dir(Dir::Left, IsShift::No)),
+        'd' => Some(Input::Dir(Dir::Right, IsShift::No)),
+        'W' => Some(Input::Dir(Dir::Up, IsShift::Yes)),
+        'S' => Some(Input::Dir(Dir::Down, IsShift::Yes)),
+        'A' => Some(Input::Dir(Dir::Left, IsShift::Yes)),
+        'D' => Some(Input::Dir(Dir::Right, IsShift::Yes)),
+        'b' | 'B' => Some(Input::Build),
+        'q' => Some(Input::Quit),
+        'i' | 'I' => Some(Input::OpenInventory),
+        _ => None,
+    }
+}
+
+fn on_key_event(key_event: KeyEvent) -> Option<Input> {
+    // We want to skip release events because they are not the pressing of a button.
+    if key_event.kind == event::KeyEventKind::Release {
+        return None;
+    }
+    match key_event.code {
+        KeyCode::Char(ch) => on_letter_pressed(ch),
+        KeyCode::Esc => Some(Input::CloseMenu),
+        _ => None,
+        /* Other types of key-event codes:
+         * `KeyCode::Backspace`
+         * `KeyCode::Enter`
+         * `KeyCode::Left`
+         * `KeyCode::Right`
+         * `KeyCode::Up`
+         * `KeyCode::Down`
+         * `KeyCode::Home`
+         * `KeyCode::End`
+         * `KeyCode::PageUp`
+         * `KeyCode::PageDown`
+         * `KeyCode::Tab`
+         * `KeyCode::BackTab`
+         * `KeyCode::Delete`
+         * `KeyCode::Insert`
+         * `KeyCode::F(_)`
+         * `KeyCode::Null`
+         * `KeyCode::CapsLock`
+         * `KeyCode::ScrollLock`
+         * `KeyCode::NumLock`
+         * `KeyCode::PrintScreen`
+         * `KeyCode::Pause`
+         * `KeyCode::Menu`
+         * `KeyCode::KeypadBegin`
+         * `KeyCode::Media(media_key_code)`
+         * `KeyCode::Modifier(modifier_key_code)`
+         */
+    }
+}
+
 fn get_input() -> Option<Input> {
     // TODO: Currently, this buffers input. So if you spam a key, it will keep
     // being registered as pressed even after you let go of the button (if there
     // is some lag). To avoid this, we want another thread reading input and
     // blocking, and sending them individually, but to a 1-length buffer.
-    #[allow(clippy::unbuffered_bytes)]
-    stdin()
-        .bytes()
-        .next()
-        .and_then(|b| b.ok())
-        .and_then(|b| match b as char {
-            'w' => Some(Input::Dir(Dir::Up, IsShift::No)),
-            's' => Some(Input::Dir(Dir::Down, IsShift::No)),
-            'a' => Some(Input::Dir(Dir::Left, IsShift::No)),
-            'd' => Some(Input::Dir(Dir::Right, IsShift::No)),
-            'W' => Some(Input::Dir(Dir::Up, IsShift::Yes)),
-            'S' => Some(Input::Dir(Dir::Down, IsShift::Yes)),
-            'A' => Some(Input::Dir(Dir::Left, IsShift::Yes)),
-            'D' => Some(Input::Dir(Dir::Right, IsShift::Yes)),
-            'b' | 'B' => Some(Input::Build),
-            'q' => Some(Input::Quit),
-            _ => None,
-        })
+    let event = crossterm::event::read().expect("Failed to read input");
+    match event {
+        Event::Key(key_event) => on_key_event(key_event),
+        _ => None,
+        /* Other types of events:
+         *
+         * `Event::FocusGained`
+         * `Event::FocusLost`
+         * `Event::Mouse(mouse_event)`
+         * `Event::Paste(_)`
+         * `Event::Resize(_, _)`
+         */
+    }
 }
 
 /// The chars to draw on the screen for some game thing.
@@ -180,7 +235,13 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
     }
     write!(output, "{}{}", BR, line_ending())?;
 
-    write!(output, "XY: {} {}{}", state.player_pos.0, state.player_pos.1, line_ending())?;
+    write!(
+        output,
+        "XY: {} {}{}",
+        state.player_pos.0,
+        state.player_pos.1,
+        line_ending()
+    )?;
 
     queue!(
         output,
@@ -250,13 +311,29 @@ impl Platform for TerminalPlatform {
 
     fn init(&mut self) -> io::Result<()> {
         terminal::enable_raw_mode()?;
-        execute!(stdout(), terminal::EnterAlternateScreen)?;
+        #[cfg(unix)]
+        queue!(
+            stdout(),
+            event::PushKeyboardEnhancementFlags(event::KeyboardEnhancementFlags::empty()),
+        );
+        execute!(
+            stdout(),
+            terminal::EnterAlternateScreen,
+        )?;
         Ok(())
     }
 
     fn cleanup(&mut self) -> io::Result<()> {
         terminal::disable_raw_mode()?;
-        execute!(stdout(), terminal::LeaveAlternateScreen)?;
+        #[cfg(unix)]
+        queue!(
+            stdout(),
+            event::PopKeyboardEnhancementFlags,
+        );
+        execute!(
+            stdout(),
+            terminal::LeaveAlternateScreen,
+        )?;
         Ok(())
     }
 

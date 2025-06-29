@@ -55,6 +55,13 @@ pub use items::Item;
 mod inventory;
 pub use inventory::Inventory;
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Menu {
+    #[default]
+    None,
+    Inventory,
+}
+
 /// The full state of the game in any given moment.
 /// This type is de/serializable for ease of the platform.
 #[serde_as]
@@ -75,6 +82,8 @@ pub struct State {
     message: String,
     #[serde(default)]
     inventory: Inventory,
+    #[serde(skip)]
+    menu: Menu,
 }
 
 impl Default for State {
@@ -91,6 +100,7 @@ impl State {
             player_dir: Dir::Down,
             message: String::new(),
             inventory: Inventory::default(),
+            menu: Menu::default(),
         }
     }
 
@@ -180,6 +190,8 @@ impl State {
             Input::Dir(dir, shift) => self.on_dir_input(dir, shift),
             Input::Build => self.on_build(),
             Input::Quit => return None,
+            Input::OpenInventory => self.menu = Menu::Inventory,
+            Input::CloseMenu => self.menu = Menu::None,
         }
         self.tick();
         Some(self)

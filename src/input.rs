@@ -11,6 +11,8 @@ pub enum Input {
     Dir(Dir, IsShift),
     Build,
     Quit,
+    OpenInventory,
+    CloseMenu,
 }
 
 impl TryFrom<Input> for Dir {
@@ -19,8 +21,7 @@ impl TryFrom<Input> for Dir {
     fn try_from(input: Input) -> Result<Self, Self::Error> {
         match input {
             Input::Dir(dir, _) => Ok(dir),
-            Input::Build => Err(()),
-            Input::Quit => Err(()),
+            _ => Err(()),
         }
     }
 }

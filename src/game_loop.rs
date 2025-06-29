@@ -1,5 +1,4 @@
 use crate::Input;
-use crate::OnInput;
 use crate::Platform;
 use crate::State;
 

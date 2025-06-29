@@ -17,12 +17,6 @@ use utils::{Dir, Pos};
 mod input;
 pub use input::{Input, IsShift};
 
-/// Trait for handling input. Used by `start_game`.
-pub trait OnInput: Sized {
-    /// Returns `None` if the game has ended.
-    fn on_input(self, input: Input) -> Option<Self>;
-}
-
 /// A platform is a trait that defines defines how a game interacts with the
 /// local system. That includes getting input, drawing to the screen, saving and
 /// loading, and whatever else there is that isn't game logic.
@@ -195,11 +189,5 @@ impl State {
         }
         self.tick();
         Some(self)
-    }
-}
-
-impl OnInput for State {
-    fn on_input(self, input: Input) -> Option<Self> {
-        self.on_input(input)
     }
 }

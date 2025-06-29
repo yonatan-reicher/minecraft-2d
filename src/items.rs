@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::Tile;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Item {
     Wall,
 }

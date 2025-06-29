@@ -52,6 +52,9 @@ pub use tiles::Tile;
 mod items;
 pub use items::Item;
 
+mod inventory;
+pub use inventory::Inventory;
+
 /// The full state of the game in any given moment.
 /// This type is de/serializable for ease of the platform.
 #[serde_as]
@@ -70,6 +73,8 @@ pub struct State {
     // TODO: Replace this by a function.
     #[serde(default)]
     message: String,
+    #[serde(default)]
+    inventory: Inventory,
 }
 
 impl Default for State {
@@ -85,6 +90,7 @@ impl State {
             player_pos: (0, 0),
             player_dir: Dir::Down,
             message: String::new(),
+            inventory: Inventory::default(),
         }
     }
 
@@ -134,8 +140,9 @@ impl State {
             // We are breaking the tile!
             match tile.breaks_into() {
                 tiles::BreakResult::Tile(tile) => self.set_tile(new_pos, tile),
-                tiles::BreakResult::Item(_item) => {
+                tiles::BreakResult::Item(item) => {
                     // TODO: Save in some inventory
+                    self.inventory.insert(item);
                     self.set_tile(new_pos, Tile::Empty);
                 }
                 tiles::BreakResult::CannotBeBroken => (),
@@ -148,20 +155,27 @@ impl State {
         if self.get_tile(build_pos) != Tile::Empty {
             return; // Do not build on existing tiles
         }
+        let Ok(()) = self.inventory.remove(&Item::Wall) else {
+            self.message = "You don't have any walls to build.".to_string();
+            return;
+        };
         self.set_tile(build_pos, Tile::WallFull);
     }
 
     fn tick(&mut self) {
         let tile_in_front = self.get_tile(self.player_pos + self.player_dir);
-        match tile_in_front {
-            Tile::Empty => self.message.clear(),
-            Tile::WallFull => self.message = "You are facing a full wall.".to_string(),
-            Tile::WallHalf => self.message = "You are facing a half wall.".to_string(),
-            Tile::WallLow => self.message = "You are facing a low wall.".to_string(),
+        if self.message.is_empty() {
+            match tile_in_front {
+                Tile::Empty => (),
+                Tile::WallFull => self.message = "You are facing a full wall.".to_string(),
+                Tile::WallHalf => self.message = "You are facing a half wall.".to_string(),
+                Tile::WallLow => self.message = "You are facing a low wall.".to_string(),
+            }
         }
     }
 
     pub fn on_input(mut self, input: Input) -> Option<Self> {
+        self.message.clear();
         match input {
             Input::Dir(dir, shift) => self.on_dir_input(dir, shift),
             Input::Build => self.on_build(),

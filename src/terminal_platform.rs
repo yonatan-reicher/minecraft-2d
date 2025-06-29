@@ -17,9 +17,7 @@ use crossterm::style::Colors;
 use crossterm::style::Print;
 use crossterm::terminal;
 use std::io;
-use std::io::Read;
 use std::io::Write;
-use std::io::stdin;
 use std::io::stdout;
 use std::path::{Path, PathBuf};
 

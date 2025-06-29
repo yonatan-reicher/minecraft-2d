@@ -247,7 +247,6 @@ impl TerminalPlatform {
 
 impl Platform for TerminalPlatform {
     type Error = io::Error;
-    type State = State;
 
     fn init(&mut self) -> io::Result<()> {
         terminal::enable_raw_mode()?;

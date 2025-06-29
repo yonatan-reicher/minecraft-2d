@@ -30,14 +30,13 @@ pub trait OnInput: Sized {
 /// A `Platform` type can be used with the `start_game` function.
 pub trait Platform {
     type Error;
-    type State: OnInput + Default;
 
     fn init(&mut self) -> Result<(), Self::Error>;
     fn cleanup(&mut self) -> Result<(), Self::Error>;
     fn ask_for_input(&mut self) -> Result<Option<Input>, Self::Error>;
-    fn draw(&mut self, state: &Self::State) -> Result<(), Self::Error>;
-    fn save(&mut self, state: &Self::State) -> Result<(), Self::Error>;
-    fn load(&mut self) -> Result<Option<Self::State>, Self::Error>;
+    fn draw(&mut self, state: &State) -> Result<(), Self::Error>;
+    fn save(&mut self, state: &State) -> Result<(), Self::Error>;
+    fn load(&mut self) -> Result<Option<State>, Self::Error>;
 }
 
 mod game_loop;

@@ -1,5 +1,6 @@
 use crate::OnInput;
 use crate::Platform;
+use crate::State;
 
 /// This function starts a game loop with the provided platform.
 /// Returns an `Ok` when the game ended successfully (by quitting).
@@ -19,7 +20,7 @@ pub fn start_game<P: Platform>(p: &mut P) -> Result<(), P::Error> {
 
 fn start_game_actual<P: Platform>(p: &mut P) -> Result<(), P::Error> {
     p.init()?;
-    let mut state = p.load()?.unwrap_or_else(P::State::default);
+    let mut state = p.load()?.unwrap_or_else(State::new);
     loop {
         p.draw(&state)?;
         let Some(input) = p.ask_for_input()? else {

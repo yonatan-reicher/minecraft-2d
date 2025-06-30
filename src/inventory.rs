@@ -24,6 +24,10 @@ impl Inventory {
         }
     }
 
+    pub fn count_of(&self, item: &Item) -> usize {
+        self.items.get(item).cloned().unwrap_or(0)
+    }
+
     pub fn insert(&mut self, item: Item) {
         *self.items.entry(item).or_insert(0) += 1;
     }
@@ -39,6 +43,11 @@ impl Inventory {
         } else {
             Err(HasNone)
         }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (Item, usize)> {
+        self.items.iter()
+            .map(|(item, &count)| (item.clone(), count))
     }
 }
 

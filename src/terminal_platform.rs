@@ -7,11 +7,42 @@ use crossterm::{execute, queue};
 use std::io::{self, Write, stdout};
 use std::path::{Path, PathBuf};
 
+/*
 fn line_ending() -> &'static str {
     // We need this line ending, because in raw mode, in some terminals, `\n`
     // does not return to the start of the line.
     // And, notably, `writeln!` does not print a `\r`.
     "\r\n"
+}
+*/
+
+mod border {
+    use std::io::{self, Write};
+
+    pub const TL: char = '┏';
+    pub const T: char = '━';
+    pub const TR: char = '┓';
+    pub const L: char = '┃';
+    pub const R: char = '┃';
+    pub const BL: char = '┗';
+    pub const B: char = '━';
+    pub const BR: char = '┛';
+
+    pub fn bottom_row(output: &mut impl Write, inner_width: u16) -> io::Result<()> {
+        write!(output, "{}", BL)?;
+        for _ in 0..inner_width {
+            write!(output, "{}", B)?;
+        }
+        write!(output, "{}", BR)
+    }
+
+    pub fn top_row(output: &mut impl Write, inner_width: u16) -> io::Result<()> {
+        write!(output, "{}", TL)?;
+        for _ in 0..inner_width {
+            write!(output, "{}", T)?;
+        }
+        write!(output, "{}", TR)
+    }
 }
 
 fn data_dir() -> io::Result<PathBuf> {
@@ -146,55 +177,48 @@ impl From<[char; 2]> for Chars {
     }
 }
 
-fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> io::Result<()> {
-    /// A tile get's drawn to two characters because most fonts are taller than
-    /// they are wide.
-    fn draw_tile(tile: Tile) -> Chars {
-        match tile {
-            Tile::WallFull => ['█', '█'].into(),
-            Tile::WallHalf => ['▓', '▓'].into(),
-            Tile::WallLow => ['▒', '▒'].into(),
-            Tile::Empty => [' ', ' '].into(),
-        }
-    }
-    // ░ ▒ ▓
 
-    const TL: char = '┏';
-    const T: char = '━';
-    const TR: char = '┓';
-    const L: char = '┃';
-    const R: char = '┃';
-    const BL: char = '┗';
-    const B: char = '━';
-    const BR: char = '┛';
-
-    /// Player character
-    fn player(dir: Dir) -> Chars {
-        Chars::from(match dir {
-            Dir::Up => ['▀', '▀'],
-            Dir::Down => ['▄', '▄'],
-            Dir::Left => ['█', ' '],
-            Dir::Right => [' ', '█'],
-        })
-        .with_fg(Color::White)
-        .with_bg(Color::DarkGrey)
+/// A tile get's drawn to two characters because most fonts are taller than
+/// they are wide.
+fn draw_tile(tile: Tile) -> Chars {
+    match tile {
+        Tile::WallFull => ['█', '█'].into(),
+        Tile::WallHalf => ['▓', '▓'].into(),
+        Tile::WallLow => ['▒', '▒'].into(),
+        Tile::Empty => [' ', ' '].into(),
     }
+}
+// ░ ▒ ▓
+
+/// Player character
+fn player(dir: Dir) -> Chars {
+    Chars::from(match dir {
+        Dir::Up => ['▀', '▀'],
+        Dir::Down => ['▄', '▄'],
+        Dir::Left => ['█', ' '],
+        Dir::Right => [' ', '█'],
+    })
+    .with_fg(Color::White)
+    .with_bg(Color::DarkGrey)
+}
+
+fn draw(state: &State, output: &mut impl io::Write, width: u16, height: u16) -> io::Result<()> {
 
     let outer_width = width & !1 /* Ensure even */;
-    let outer_height = height;
+    let outer_height = height - 2 /* For living space for text below */;
     let inner_width = outer_width - 2 /* For the frame */;
     let inner_height = outer_height - 2 /* For the frame */;
     let rows = inner_height;
     let cells_in_a_row = inner_width / 2;
 
-    write!(output, "{}", TL)?;
-    for _ in 0..inner_width {
-        write!(output, "{}", T)?;
-    }
-    write!(output, "{}{}", TR, line_ending())?;
+    queue!(output, style::ResetColor)?;
+
+    queue!(output, cursor::MoveTo(0, 0))?;
+    border::top_row(output, inner_width)?;
 
     for row in 0..rows {
-        write!(output, "{}", L)?;
+        queue!(output, cursor::MoveTo(0, row + 1))?;
+        write!(output, "{}", border::L)?;
         for col in 0..cells_in_a_row {
             let pos = (
                 state.player_pos.0 + col as i32 - cells_in_a_row as i32 / 2,
@@ -210,31 +234,86 @@ fn draw(state: &State, output: &mut impl io::Write, width: u32, height: u32) -> 
             };
             chars.write(output)?;
         }
-        write!(output, "{}{}", R, line_ending())?;
+        write!(output, "{}", border::R)?;
     }
 
-    write!(output, "{}", BL)?;
-    for _ in 0..inner_width {
-        write!(output, "{}", B)?;
-    }
-    write!(output, "{}{}", BR, line_ending())?;
+    queue!(output, cursor::MoveTo(0, rows + 1))?;
+    border::bottom_row(output, inner_width)?;
 
+    queue!(output, cursor::MoveTo(0, rows + 1))?;
     write!(
         output,
-        "XY: {} {}{}",
+        "XY: {} {}",
         state.player_pos.0,
         state.player_pos.1,
-        line_ending()
     )?;
 
     queue!(
         output,
         style::ResetColor,
         cursor::RestorePosition,
-        cursor::MoveDown(1),
-        cursor::MoveLeft(10),
+        cursor::MoveDown(2),
+        cursor::MoveLeft((state.message.len() / 2) as u16),
         Print(&state.message),
     )?;
+
+    match state.menu {
+        Menu::None => (),
+        Menu::Inventory => draw_inventory(
+            state,
+            output,
+            (width / 4, height / 4),
+            (width / 2, height / 2),
+        )?,
+    }
+
+    Ok(())
+}
+
+fn draw_inventory(
+    state: &State,
+    output: &mut impl io::Write,
+    (left, top): (u16, u16),
+    (width, height): (u16, u16),
+) -> io::Result<()> {
+
+    let bottom = top + height - 1;
+    let inner_width = width - 2;
+
+    queue!(output, cursor::MoveTo(left, top))?;
+    border::top_row(output, inner_width)?;
+
+    // Clear the inside
+    for row in top + 1..bottom {
+        queue!(
+            output,
+            cursor::MoveTo(left, row),
+            Print(border::L),
+            Print(" ".repeat(inner_width as usize)),
+            Print(border::R),
+        )?;
+    }
+
+    let draw_player_at = (left + 3, top + 3);
+    queue!(output, cursor::MoveTo(draw_player_at.0, draw_player_at.1))?;
+    player(state.player_dir).write(output)?;
+    queue!(output, style::ResetColor)?;
+
+    queue!(output, cursor::MoveTo(left + 1, top + 5))?;
+    write!(output, "{}", "-".repeat(inner_width as usize))?;
+
+    for (i, (typ, count)) in state.inventory.iter().enumerate() {
+        queue!(output, cursor::MoveTo(left + 6, top + 7 + i as u16))?;
+        let name = typ.name();
+        if count == 1 {
+            write!(output, "{name}")?;
+        } else {
+            write!(output, "{name} ✗ {count}")?;
+        }
+    }
+
+    queue!(output, cursor::MoveTo(left, bottom))?;
+    border::bottom_row(output, inner_width)?;
 
     Ok(())
 }
@@ -300,24 +379,15 @@ impl Platform for TerminalPlatform {
             stdout(),
             event::PushKeyboardEnhancementFlags(event::KeyboardEnhancementFlags::empty()),
         );
-        execute!(
-            stdout(),
-            terminal::EnterAlternateScreen,
-        )?;
+        execute!(stdout(), terminal::EnterAlternateScreen,)?;
         Ok(())
     }
 
     fn cleanup(&mut self) -> io::Result<()> {
         terminal::disable_raw_mode()?;
         #[cfg(unix)]
-        queue!(
-            stdout(),
-            event::PopKeyboardEnhancementFlags,
-        );
-        execute!(
-            stdout(),
-            terminal::LeaveAlternateScreen,
-        )?;
+        queue!(stdout(), event::PopKeyboardEnhancementFlags,);
+        execute!(stdout(), terminal::LeaveAlternateScreen,)?;
         Ok(())
     }
 
@@ -333,10 +403,12 @@ impl Platform for TerminalPlatform {
         )?;
         let mut out = vec![];
         let (w, h) = terminal::size()?;
-        draw(state, &mut out, w as _, (h - 2) as _)?;
+        let (w, h) = (w as _, h as _);
+        draw(state, &mut out, w, h)?;
         io::stdout().write_all(&out)?;
         execute!(
             stdout(),
+            style::ResetColor,
             cursor::MoveTo(1, 1),
             Print(HELP[0]),
             cursor::MoveTo(1, 2),
@@ -347,6 +419,10 @@ impl Platform for TerminalPlatform {
             Print(HELP[3]),
             cursor::MoveTo(1, 5),
             Print(HELP[4]),
+            cursor::MoveTo(1, 6),
+            Print(HELP[5]),
+            cursor::MoveTo(1, 7),
+            Print(HELP[6]),
         )?;
         Ok(())
     }
@@ -366,5 +442,7 @@ const HELP: &[&str] = &[
     "w/a/s/d - move",
     "W/A/S/D - move without turning",
     "b/B - build",
+    "i/I - open inventory",
+    "Esc - close menu",
     "q - quit",
 ];

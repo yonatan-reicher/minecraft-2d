@@ -1,24 +1,10 @@
-use crate::Dir;
-use crate::Input;
-use crate::IsShift;
-use crate::Platform;
-use crate::State;
-use crate::Tile;
+use crate::{Dir, Input, IsShift, Menu, Platform, State, Tile};
 use crossterm::cursor;
-use crossterm::event;
-use crossterm::event::Event;
-use crossterm::event::KeyCode;
-use crossterm::event::KeyEvent;
-use crossterm::execute;
-use crossterm::queue;
-use crossterm::style;
-use crossterm::style::Color;
-use crossterm::style::Colors;
-use crossterm::style::Print;
+use crossterm::event::{self, Event, KeyCode, KeyEvent};
+use crossterm::style::{self, Color, Colors, Print};
 use crossterm::terminal;
-use std::io;
-use std::io::Write;
-use std::io::stdout;
+use crossterm::{execute, queue};
+use std::io::{self, Write, stdout};
 use std::path::{Path, PathBuf};
 
 fn line_ending() -> &'static str {

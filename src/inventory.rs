@@ -15,7 +15,7 @@ pub struct Inventory {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct DoesNotExist;
+pub struct HasNone;
 
 impl Inventory {
     pub fn new() -> Self {
@@ -28,7 +28,7 @@ impl Inventory {
         *self.items.entry(item).or_insert(0) += 1;
     }
 
-    pub fn remove(&mut self, item: &Item) -> Result<(), DoesNotExist> {
+    pub fn remove(&mut self, item: &Item) -> Result<(), HasNone> {
         if let Some(count) = self.items.get_mut(item) {
             assert!(*count > 0, "All items in the inventory must have count > 0");
             *count -= 1;
@@ -37,7 +37,7 @@ impl Inventory {
             }
             Ok(())
         } else {
-            Err(DoesNotExist)
+            Err(HasNone)
         }
     }
 }

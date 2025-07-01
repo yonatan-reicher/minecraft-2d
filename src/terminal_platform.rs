@@ -215,7 +215,8 @@ fn player(dir: Dir) -> Chars {
 
 fn draw(state: &State, output: &mut impl io::Write, width: u16, height: u16) -> io::Result<()> {
     let outer_width = width & !1 /* Ensure even */;
-    let outer_height = height - 2 /* For living space for text below */;
+    // let outer_height = height - 2 /* For living space for text below */;
+    let outer_height = height;
     let inner_width = outer_width - 2 /* For the frame */;
     let inner_height = outer_height - 2 /* For the frame */;
     let rows = inner_height;

@@ -306,9 +306,9 @@ fn draw_inventory(
     queue!(output, cursor::MoveTo(left + 1, top + 5))?;
     write!(output, "{}", "-".repeat(inner_width as usize))?;
 
-    for (i, (typ, count)) in state.inventory.iter().enumerate() {
+    for (i, (item, count)) in state.inventory.iter().enumerate() {
         queue!(output, cursor::MoveTo(left + 6, top + 7 + i as u16))?;
-        let name = typ.name();
+        let name = item.name();
         if count == 1 {
             write!(output, "{name}")?;
         } else {

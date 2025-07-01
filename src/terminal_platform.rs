@@ -298,16 +298,16 @@ fn draw_inventory(
         )?;
     }
 
-    let draw_player_at = (left + 3, top + 3);
+    let draw_player_at = (left + 3, top + 2);
     queue!(output, cursor::MoveTo(draw_player_at.0, draw_player_at.1))?;
     player(state.player_dir).write(output)?;
     queue!(output, style::ResetColor)?;
 
-    queue!(output, cursor::MoveTo(left + 1, top + 5))?;
+    queue!(output, cursor::MoveTo(left + 1, top + 4))?;
     write!(output, "{}", "-".repeat(inner_width as usize))?;
 
     for (i, (item, count)) in state.inventory.iter().enumerate() {
-        queue!(output, cursor::MoveTo(left + 6, top + 7 + i as u16))?;
+        queue!(output, cursor::MoveTo(left + 6, top + 6 + i as u16))?;
         let name = item.name();
         if count == 1 {
             write!(output, "{name}")?;

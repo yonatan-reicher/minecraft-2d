@@ -7,6 +7,7 @@ pub enum Tile {
     WallFull,
     WallHalf,
     WallLow,
+    Wood(u8),
 }
 
 /// What does a tile break into?
@@ -36,6 +37,18 @@ impl Tile {
             Tile::WallHalf => Tile::WallLow.into(),
             Tile::WallLow => Item::Wall.into(),
             Tile::Empty => BreakResult::CannotBeBroken,
+            Tile::Wood(0) => Item::Wood.into(),
+            Tile::Wood(n) => Tile::Wood(n - 1).into(),
+        }
+    }
+
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Tile::Empty => "empty",
+            Tile::WallFull => "wall",
+            Tile::WallHalf => "broken wall",
+            Tile::WallLow => "very broken wall",
+            Tile::Wood(_) => "wood",
         }
     }
 }

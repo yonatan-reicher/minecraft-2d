@@ -168,13 +168,9 @@ impl State {
 
     fn tick(&mut self) {
         let tile_in_front = self.get_tile(self.player_pos + self.player_dir);
-        if self.message.is_empty() {
-            match tile_in_front {
-                Tile::Empty => (),
-                Tile::WallFull => self.message = "You are facing a full wall.".to_string(),
-                Tile::WallHalf => self.message = "You are facing a half wall.".to_string(),
-                Tile::WallLow => self.message = "You are facing a low wall.".to_string(),
-            }
+        let tile_name = tile_in_front.name();
+        if self.message.is_empty() && tile_in_front != Tile::Empty {
+            self.message = format!("You are facing a {tile_name}")
         }
     }
 

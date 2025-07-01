@@ -151,6 +151,10 @@ impl Chars {
         }
     }
 
+    pub const fn single(c: char) -> Self {
+        Self::new(c, c)
+    }
+
     pub const fn with_fg(mut self, fg: Color) -> Self {
         self.fg = fg;
         self
@@ -171,12 +175,19 @@ impl Chars {
     }
 }
 
+impl From<char> for Chars {
+    fn from(char: char) -> Self {
+        Self::single(char)
+    }
+}
+
 impl From<[char; 2]> for Chars {
     fn from(chars: [char; 2]) -> Self {
         Self::new(chars[0], chars[1])
     }
 }
 
+const SHADES: [char; 4] = ['░', '▒', '▓', '█'];
 
 /// A tile get's drawn to two characters because most fonts are taller than
 /// they are wide.
@@ -186,9 +197,9 @@ fn draw_tile(tile: Tile) -> Chars {
         Tile::WallHalf => ['▓', '▓'].into(),
         Tile::WallLow => ['▒', '▒'].into(),
         Tile::Empty => [' ', ' '].into(),
+        Tile::Wood(n) => Chars::single(SHADES[n.min(3) as usize]).with_fg(Color::DarkYellow),
     }
 }
-// ░ ▒ ▓
 
 /// Player character
 fn player(dir: Dir) -> Chars {
@@ -203,7 +214,6 @@ fn player(dir: Dir) -> Chars {
 }
 
 fn draw(state: &State, output: &mut impl io::Write, width: u16, height: u16) -> io::Result<()> {
-
     let outer_width = width & !1 /* Ensure even */;
     let outer_height = height - 2 /* For living space for text below */;
     let inner_width = outer_width - 2 /* For the frame */;
@@ -241,12 +251,7 @@ fn draw(state: &State, output: &mut impl io::Write, width: u16, height: u16) -> 
     border::bottom_row(output, inner_width)?;
 
     queue!(output, cursor::MoveTo(0, rows + 1))?;
-    write!(
-        output,
-        "XY: {} {}",
-        state.player_pos.0,
-        state.player_pos.1,
-    )?;
+    write!(output, "XY: {} {}", state.player_pos.0, state.player_pos.1,)?;
 
     queue!(
         output,
@@ -276,7 +281,6 @@ fn draw_inventory(
     (left, top): (u16, u16),
     (width, height): (u16, u16),
 ) -> io::Result<()> {
-
     let bottom = top + height - 1;
     let inner_width = width - 2;
 

@@ -1,7 +1,7 @@
 use crate::{Dir, Input, IsShift, Menu, Platform, State, Tile};
 use crossterm::cursor;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
-use crossterm::style::{self, Color, Colors, Print};
+use crossterm::style::{self, Attribute, Color, Colors, Print};
 use crossterm::terminal;
 use crossterm::{execute, queue};
 use std::io::{self, Write, stdout};
@@ -309,10 +309,27 @@ fn draw_inventory(
     for (i, (item, count)) in state.inventory.iter().enumerate() {
         queue!(output, cursor::MoveTo(left + 6, top + 6 + i as u16))?;
         let name = item.name();
+        let is_selected = Some(&item) == state.selected_item.as_ref();
+        let selected: Colors = Colors::new(Color::Black, Color::White);
+        if is_selected {
+            queue!(
+                output,
+                style::SetColors(selected),
+                // style::SetAttribute(Attribute::Underlined),
+            )?;
+        }
+        let prefix = if is_selected { '>' } else { ' ' };
         if count == 1 {
-            write!(output, "{name}")?;
+            write!(output, "{prefix} {name}")?;
         } else {
-            write!(output, "{name} ✗ {count}")?;
+            write!(output, "{prefix} {name} ✗ {count}")?;
+        }
+        if is_selected {
+            queue!(
+                output,
+                style::ResetColor,
+                style::SetAttribute(Attribute::Reset)
+            )?;
         }
     }
 
@@ -402,7 +419,7 @@ impl Platform for TerminalPlatform {
     fn draw(&mut self, state: &State) -> io::Result<()> {
         queue!(
             stdout(),
-            terminal::Clear(terminal::ClearType::All),
+            // terminal::Clear(terminal::ClearType::All),
             cursor::MoveTo(0, 0),
         )?;
         let mut out = vec![];

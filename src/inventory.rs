@@ -46,8 +46,52 @@ impl Inventory {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Item, usize)> {
-        self.items.iter()
+        self.items
+            .iter()
             .map(|(item, &count)| (item.clone(), count))
+    }
+
+    pub fn first(&self) -> Option<&Item> {
+        self.items.keys().next()
+    }
+
+    /// Returns the next item to come after the given item (in some not really
+    /// specified order). Wraps.
+    ///
+    /// NOTE: The item must be in the inventory.
+    pub fn next(&self, item: &Item) -> Item {
+        debug_assert!(
+            self.items.contains_key(item),
+            "Item must be in the inventory"
+        );
+        self.items
+            .keys()
+            // Get to the item in the iterator
+            .skip_while(|&i| i != item)
+            // Get the next item after it
+            .nth(1)
+            // Or the first
+            .or_else(|| self.first())
+            .cloned()
+            .expect("The inventory here should not be empty")
+    }
+
+    /// Returns the previous item. See `next`.
+    pub fn prev(&self, item: &Item) -> Item {
+        debug_assert!(
+            self.items.contains_key(item),
+            "Item must be in the inventory"
+        );
+        let mut prev = None;
+        for i in self.items.keys() {
+            if i == item {
+                return prev
+                    .or_else(|| self.items.keys().last().cloned())
+                    .expect("Inventory should not be empty");
+            }
+            prev = Some(i.clone());
+        }
+        panic!("The item {item:?} was not in the inventory!");
     }
 }
 

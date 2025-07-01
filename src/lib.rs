@@ -78,6 +78,8 @@ pub struct State {
     inventory: Inventory,
     #[serde(skip)]
     menu: Menu,
+    #[serde(default)]
+    selected_item: Option<Item>,
 }
 
 impl Default for State {
@@ -95,6 +97,7 @@ impl State {
             message: String::new(),
             inventory: Inventory::default(),
             menu: Menu::default(),
+            selected_item: None,
         }
     }
 
@@ -122,7 +125,7 @@ impl State {
         }
     }
 
-    fn on_dir_input(&mut self, dir: Dir, shift: IsShift) {
+    fn on_dir_input_no_menu(&mut self, dir: Dir, shift: IsShift) {
         let dir_same = self.player_dir == dir;
 
         if shift == IsShift::No {
@@ -154,16 +157,42 @@ impl State {
         }
     }
 
+    fn on_dir_input_inventory(&mut self, dir: Dir, shift: IsShift) {
+        let is_advancing = dir == Dir::Right || dir == Dir::Down;
+        match &mut self.selected_item {
+            Some(item) => *item = if is_advancing { 
+                self.inventory.next(item) 
+            } else { 
+                self.inventory.prev(item) 
+            },
+            None => self.selected_item = self.inventory.first().cloned(),
+        }
+    }
+
+    fn on_dir_input(&mut self, dir: Dir, shift: IsShift) {
+        match self.menu {
+            Menu::None => self.on_dir_input_no_menu(dir, shift),
+            Menu::Inventory => self.on_dir_input_inventory(dir, shift),
+        }
+    }
+
     fn on_build(&mut self) {
         let build_pos = self.player_pos + self.player_dir;
         if self.get_tile(build_pos) != Tile::Empty {
+            self.message = "You cannot build on existing tiles.".to_string();
             return; // Do not build on existing tiles
         }
-        let Ok(()) = self.inventory.remove(&Item::Wall) else {
-            self.message = "You don't have any walls to build.".to_string();
+        let Some(selected_item) = self.selected_item.clone() else {
+            self.message = "You have no item selected to build.".to_string();
+            return; // Do not build if no selected item
+        };
+        let Some(tile) = selected_item.to_tile() else {
+            let name = selected_item.name();
+            self.message = format!("You cannot build a {name}.");
             return;
         };
-        self.set_tile(build_pos, Tile::WallFull);
+        self.inventory.remove(&selected_item).expect("Item should be in the inventory");
+        self.set_tile(build_pos, tile);
     }
 
     fn tick(&mut self) {
